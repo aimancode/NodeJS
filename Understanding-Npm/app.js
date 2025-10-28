@@ -1,19 +1,20 @@
-const http = require("http");
-
 const express = require("express");
 
 //creating express application and storing it in app
 const app = express();
 
 //adding the MiddleWare function
-app.use((req, res, next) => {
-  console.log("In The MiddleWare");
-  next(); // Allows the request to continue to the next middleware in line
+// adding function that are hooked into funnels through which the request goes to send it to the next middleware
+// or to send response  Allows the request to continue to the next middleware in line
+
+app.use('/add-product',(req, res, next) => {
+  res.send("<h1>Hello from Add Product Page</h1>"); //send allows us to attach a body
+
 });
 
-app.use((req, res, next) => {
-  console.log("In The another MiddleWare!");
+app.use('/',(req, res, next) => {
+  res.send("<h1>Hello from Express</h1>"); //send allows us to attach a body
 });
-const server = http.createServer(app);
 
-server.listen(3000);
+
+app.listen(3000);
