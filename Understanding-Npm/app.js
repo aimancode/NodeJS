@@ -1,10 +1,10 @@
-const http = require('http');
+const http = require("http");
 
-const routes = require('./routes');
+const express = require("express");
 
-console.log(routes.someText);
+//creating express application and storing it in app
+const app = express();
 
-const server = http.createServer(routes.handler);
-
+const server = http.createServer(app);
 
 server.listen(3000);
