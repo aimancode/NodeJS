@@ -1,11 +1,10 @@
-
 const express = require("express");
-
 
 const router = express.Router();
 
-router.get("/", );
+const productsController = require("../controllers/products");
 
-//getting acces to the products
+router.get("/", productsController.getProducts);
+
 
 module.exports = router;
