@@ -1,1 +1,15 @@
-[{"title":""},{"title":"asdfasdf"}]
+[
+  {
+    "id": "12398",
+    "title": "Test 1",
+    "imageUrl": "https://en.wikipedia.org/wiki/Image#/media/File:Image_created_with_a_mobile_phone.png",
+    "description": "A beautifull image \r\n",
+    "price": "23"
+  },
+  {
+    "title": "Item 2",
+    "imageUrl": "https://cdn.pixabay.com/photo/2016/03/31/20/51/book-1296045_960_720.png",
+    "description": "A Book",
+    "price": "20.5"
+  }
+]
