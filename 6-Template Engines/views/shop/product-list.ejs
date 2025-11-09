@@ -20,7 +20,7 @@
         </div>
         <div class="card__actions">
           <!-- Button that links to this product's detail page -->
-          <a href="/products/<%= product.id %>" class="btn">Details</a>
+          <a href="/products/<%= product._id %>" class="btn">Details</a>
           <!-- dynamic route: inserts product.id into URL so each product links to its own details page -->
           <%- include("../includes/add-to-cart.ejs", {product:product}) %>
         </div>

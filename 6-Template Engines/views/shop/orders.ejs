@@ -2,23 +2,28 @@
 
 <body>
   <%- include('../includes/navigation.ejs') %>
-  <main>
-    <% if(orders.length <= 0) {%>
+  <main class="orders-main">
+    <% if(orders.length <= 0) { %>
     <h1>Nothing there!</h1>
-    <% } else {%>
-    <ul>
-      <%orders.forEach(order =>{ %>
-      <li>
-        <h1><%= order.id%></h1>
-        <ul>
-          <% order.products.forEach(product =>{ %>
-          <li><%= product.title %> (<%= product.orderItem.quantity %>)</li>
-          <% })%>
+    <% } else { %>
+    <h1>Your Orders</h1>
+    <ul class="orders-list">
+      <% orders.forEach(order => { %>
+      <li class="order-card">
+        <h2>Order ID: <%= order._id %></h2>
+        <ul class="order-items">
+          <% order.items.forEach(product => { %>
+          <li>
+            <span><%= product.title %></span>
+            <span>Qty: <%= product.quantity %></span>
+          </li>
+          <% }) %>
         </ul>
       </li>
       <% }); %>
     </ul>
-    <%}%>
+    <% } %>
   </main>
+
   <%- include('../includes/end.ejs') %>
 </body>
