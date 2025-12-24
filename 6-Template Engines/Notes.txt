@@ -1,0 +1,393 @@
+1. What this controller does
+
+This shop controller handles everything the customer/shop side can do:
+
+Action	Route	    What happens
+View all products	/products	fetch & render product list
+View one product	/products/:productId	find item by id & render details
+View home page      /same as product list
+Add product to cart	/cart (POST)	extract product id, add to cart
+View cart page	    /cart (GET)	load cart + match with product data
+Delete product from cart	/cart-delete-item	remove 1 product from cart
+View orders page	/orders	static render now
+View checkout page	/checkout	static render now
+
+So this file handles views + cart functionality, but NOT saving products (that's admin controller).
+
+2. The models being used
+✅ Product model
+
+Used to fetch products from file or DB
+Has methods: fetchAll, findById
+
+✅ Cart model
+
+Stores cart separately (also saved in a file)
+Has methods: addProduct, deleteProduct, getCart
+
+So products and cart are stored in two different files.
+
+3. Function-by-function explanation
+✅ exports.getProducts
+exports.getProducts = (req, res, next) => {
+  const products = Product.fetchAll((products) => {
+    res.render("shop/product-list", {
+      prods: products,
+      pageTitle: "All Products",
+      path: "/products",
+    });
+  });
+};
+
+
+✔ Loads all products
+✔ Uses callback because file reading is async
+✔ Renders product-list.ejs with products passed as prods
+
+✅ exports.getProduct
+exports.getProduct = (req, res, next) => {
+  const prodId = req.params.productId;
+
+  Product.findById(prodId, (product) => {
+    res.render("shop/product-detail", {
+      product: product,
+      pageTitle: product.title,
+      path: "/products",
+    });
+  });
+};
+
+
+✔ Extracts :productId from the URL
+✔ Looks up product from storage
+✔ Passes product to the view for details page
+
+✅ exports.getIndex
+
+Same as getProducts but for /
+
+exports.getIndex = (req, res, next) => {
+  const products = Product.fetchAll((products) => {
+    res.render("shop/index", {
+      prods: products,
+      pageTitle: "Shop",
+      path: "/",
+    });
+  });
+};
+
+✅ exports.postCart
+exports.postCart = (req, res, next) => {
+  const prodId = req.body.productId;
+  Product.findById(prodId, (product) => {
+    Cart.addProduct(prodId, product.price);
+  });
+  res.redirect("/cart");
+};
+
+
+✔ Triggered when clicking "Add to Cart"
+✔ Extracts product ID from hidden input
+✔ Fetches product to get its price
+✔ Adds to cart file: { id, qty }
+✔ Redirects to cart page
+
+⚠️ Notice: redirect happens immediately (no waiting for cart write)
+
+✅ exports.getCart (MOST IMPORTANT)
+exports.getCart = (req, res, next) => {
+  Cart.getCart((cart) => {
+    Product.fetchAll((products) => {
+      const cartProducts = [];
+      for (product of products) {
+        const cartProductData = cart.products.find(
+          (prod) => prod.id === product.id
+        );
+        if (cartProductData) {
+          cartProducts.push({ productData: product, qty: cartProductData.qty });
+        }
+      }
+      res.render("shop/cart", {
+        path: "/cart",
+        pageTitle: "Your Cart",
+        products: cartProducts,
+      });
+    });
+  });
+};
+
+
+💡 What is happening here?
+
+✅ Load the cart file → contains only { id, qty }
+✅ Load all products → to match product details
+✅ Loop through all products
+✅ If product exists in cart, push object into array:
+
+{
+  productData: full product object,
+  qty: 3
+}
+
+
+So the final array sent to the view looks like:
+
+[
+  { productData: { title, price, img... }, qty: 2 },
+  { productData: { ... }, qty: 1 }
+]
+
+✅ exports.postCartDeleteProduct
+exports.postCartDeleteProduct = (req, res, next) => {
+  const prodId = req.body.productId;
+  Product.findById(prodId, (product) => {
+    Cart.deleteProduct(prodId, product.price);
+    res.redirect("/cart");
+  });
+};
+
+
+✔ Gets product ID from form
+✔ Looks up price
+✔ Calls Cart.deleteProduct()
+✔ Redirects to cart again
+
+✅ exports.getOrders
+exports.getOders = (req, res, next) => {
+  res.render("shop/orders", {
+    path: "/orders",
+    pageTitle: "Your Orders",
+  });
+};
+
+
+Static render for now — not implemented yet
+
+✅ exports.getCheckout
+
+Same as above
+
+exports.getCheckout = (req, res, next) => {
+  res.render("shop/checkout", {
+    path: "/checkout",
+    pageTitle: "checkout",
+  });
+};
+
+4. Why callbacks are used everywhere?
+
+Because file system operations (fs.readFile) are async and Node.js doesn't wait for them.
+No promises or async/await used yet — that comes later in the course.
+
+5. How res.render() works
+
+res.render(viewName, dataObject):
+
+✅ Chooses the .ejs file
+✅ Sends variables to template (prods, path, pageTitle)
+✅ Converts EJS to final HTML
+✅ Sends it back to browser
+
+6. How cart storage works (important)
+
+Cart file looks like this:
+
+{
+  "products": [
+    { "id": "p1", "qty": 2 },
+    { "id": "p3", "qty": 1 }
+  ],
+  "totalPrice": 123.45
+}
+
+
+So it only stores id + qty, not full product data.
+
+That's why getCart() needs to load products from Product model again.
+
+
+CART MODEL — FULL EXPLANATION
+📌 Where is Cart used in the project?
+Feature	Controller	How Cart is used
+Add to cart	postCart (shop)	Calls Cart.addProduct()
+View cart page	getCart (shop)	Calls Cart.getCart()
+Remove from cart	postCartDeleteProduct (shop)	Calls Cart.deleteProduct()
+Delete product (admin)	postDeleteProduct	Removes product from cart too
+
+So Cart is the data storage layer for the shopping cart, same as Product model stores products.
+
+📁 Where is data stored?
+
+Cart data is stored in:
+
+/data/cart.json
+
+
+Example JSON structure:
+
+{
+  "products": [
+    { "id": "123", "qty": 2 },
+    { "id": "456", "qty": 1 }
+  ],
+  "totalPrice": 79.98
+}
+
+
+So cart has 2 things:
+
+Property	Meaning
+products[]	list of product IDs + quantity
+totalPrice	total cost of items in cart
+1️⃣ addProduct(id, productPrice)
+static addProduct(id, productPrice) { ... }
+
+✅ What it does
+
+Adds a product to the cart.
+If the product already exists → increase quantity
+If not → add a new object to cart
+
+Also updates total price.
+
+✅ Why static method?
+
+Because cart is shared globally for all users (in this simple file-storage app).
+We don’t create new Cart() — we just call:
+
+Cart.addProduct(...)
+
+
+So static is correct.
+
+✅ Step-by-step flow
+
+Read cart.json file (fs.readFile)
+
+If file exists → parse JSON
+If not → create empty cart object
+
+Check if product already exists inside cart
+
+If exists → increase qty
+If not → push a new entry
+
+Update total cart price
+
+Write updated cart back to file (fs.writeFile)
+
+✅ Why read file first?
+
+Because:
+
+cart.json = single source of truth
+
+
+We must read existing cart before modifying it — otherwise data would be overwritten.
+
+✅ Why +productPrice?
+
+req.body values are strings, so:
+
++"19.99"
+
+
+converts string → number.
+
+2️⃣ deleteProduct(id, productPrice)
+static deleteProduct(id, productPrice) { ... }
+
+✅ What it does
+
+Removes a product from cart completely (not just 1 quantity).
+
+Also decreases total price by productPrice × qty.
+
+✅ Why do we need product price here?
+
+Because cart only stores:
+
+{ id: "...", qty: 2 }
+
+
+Cart has no price info inside, so controller must send price from Product model.
+
+That's why:
+
+Product.findById(prodId, product => {
+   Cart.deleteProduct(prodId, product.price);
+})
+
+✅ Step-by-step flow
+
+Read cart.json
+
+Find product inside cart
+
+Get its quantity
+
+Remove it from array
+
+Subtract (price × qty) from total price
+
+Save updated cart to file
+
+3️⃣ getCart(cb)
+static getCart(cb) { ... }
+
+✅ What it does
+
+Reads cart.json and returns the whole cart via callback.
+
+✅ Why callback?
+
+Because fs.readFile() is async
+So we cannot do:
+
+return cart; ❌
+
+
+Instead we do:
+
+Cart.getCart(cart => {
+   // cart is available here
+});
+
+✅ Step-by-step
+
+Read cart.json asynchronously
+
+If file missing → return null
+
+Else → parse and return cart object via callback
+
+🧠 Key Concepts Used in Cart Model
+Concept	Explanation
+File storage	Instead of DB, JSON file is used to simulate database
+Static methods	Used because cart doesn't need object instances
+Callback pattern	Needed because file operations are async
+Spread operator {...obj}	Used to clone objects instead of mutating
+.find() & .findIndex()	Used to lookup products in cart
+Unary + operator	Converts string to number
+🛒 Flow Example: Add to Cart
+Button "Add to Cart" clicked in UI
+↓
+POST /cart
+↓
+postCart controller
+↓
+Product.findById()
+↓
+Cart.addProduct(id, price)
+↓
+cart.json updated
+↓
+Redirect to /cart page
+
+✅ Summary of Cart Model
+Method	Purpose
+addProduct(id, price)	Add product or increase qty
+deleteProduct(id, price)	Remove product completely
+getCart(cb)	Read and return full cart data
+
+Cart is a simple file-based mini-database just for cart data.
