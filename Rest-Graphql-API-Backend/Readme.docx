@@ -1,0 +1,169 @@
+***** section 25 ******
+What this controller does (Pagination + REST logic)
+
+This controller handles fetching posts in a paginated REST API.
+Pagination is controlled using a query parameter (?page=1, ?page=2, etc.).
+The API returns only a limited number of posts per request instead of all posts at once.
+It also returns the total number of posts, which allows the frontend to calculate how many pages exist.
+Errors are forwarded to a central error-handling middleware.
+
+Pagination logic explained
+currentPage
+Reads the current page number from the request query. Defaults to page 1 if not provided.
+perPage
+Defines how many posts should be returned per page.
+countDocuments()
+Counts the total number of posts in the database. This value is used for pagination UI on the frontend.
+skip()
+Skips posts from previous pages based on the current page.
+limit()
+Restricts the number of posts returned in a single request.
+
+
+exports.getPosts = (req, res, next) => {
+  const currentPage = req.query.page || 1;
+  const perPage = 2;
+  let totalItems;
+
+  Post.find()
+    .countDocuments()
+    .then((count) => {
+      totalItems = count;
+      return Post.find()
+        .skip((currentPage - 1) * perPage)
+        .limit(perPage);
+    })
+    .then((posts) => {
+      res.status(200).json({
+        message: "Fetched Post Successfully",
+        posts: posts,
+        totalItems: totalItems,
+      });
+    })
+    .catch((err) => {
+      if (!err.statusCode) {
+        err.statusCode = 500;
+      }
+      next(err);
+    });
+};
+
+section 25
+# validating the token on the backend
+/**
+ * Authentication Middleware (JWT-based)
+ *
+ * This middleware protects routes by verifying a JSON Web Token (JWT).
+ * It checks whether the incoming request contains a valid Authorization header,
+ * verifies the token, and extracts the userId from it.
+ *
+ * If authentication fails at any step, an error is thrown and handled
+ * by the global error-handling middleware.
+ *
+ * Usage:
+ * Attach this middleware to protected routes to ensure only authenticated
+ * users can access them.
+ */
+
+module.exports = (req, res, next) => {
+  // Read the Authorization header from the incoming request
+  const authHeader = req.get("Authorization");
+
+  // If no Authorization header is present, the user is not authenticated
+  if (!authHeader) {
+    const error = new Error("Not Authenticated");
+    error.statusCode = 401; // Unauthorized
+    throw error;
+  }
+
+  // Extract the token from the header
+  // Expected format: "Bearer <token>"
+  const token = authHeader.split(" ")[1];
+
+  let decodedToken;
+
+  try {
+    // Verify the token using the secret key
+    // This also decodes the token payload if verification succeeds
+    decodedToken = jwt.verify(token, "secret");
+  } catch (err) {
+    // Token verification failed (invalid or expired token)
+    err.statusCode = 500;
+    throw err;
+  }
+
+  // If decoding failed, the user is not authenticated
+  if (!decodedToken) {
+    const error = new Error("Not authenticated");
+    error.statusCode = 401; // Unauthorized
+    throw error;
+  }
+
+  // Store the userId from the token payload on the request object
+  // This makes it accessible in subsequent middleware/controllers
+  req.userId = decodedToken.userId;
+
+  // Allow the request to continue to the next middleware/controller
+  next();
+};
+
+## Async await
+How to identify async operations
+- When using Promises because it returns a promise like object
+- mongoose  function return s
+
+
+
+GraphQL
+Schema.js --> define query, mutations and types
+Resolvers.js --> logic for incoming queries
+
+
+// Exposes the /graphql endpoint to handle GraphQL queries and mutations
+app.use(
+  "/graphql",
+  graphqlHTTP({
+    schema: graphqlSchema,     // Defines the GraphQL schema (types, queries, mutations)
+    rootValue: graphqlResolver // Maps schema fields to resolver functions (business logic)
+  })
+);
+// Registers the GraphQL HTTP middleware at /graphql to handle all GraphQL requests
+
+Resolver
+// Exports resolver functions used by GraphQL (or other modules)
+module.exports = {
+  // Resolver method that runs when the `hello` field is requested
+  hello() {
+    // Returns a static object as the response
+    // `text` is a message string
+    // `views` represents a numeric value (e.g., page views or count)
+    return {
+      text: "Hello World",
+      views: 1234,
+    };
+  },
+};
+
+Schema
+const { buildSchema } = require("graphql");
+module.exports = buildSchema(`
+  # Defines the structure of the response data
+  type TestData {
+    text: String!   # Message text (cannot be null)
+    views: Int!     # Numeric value (cannot be null)
+  }
+
+  # Root query type containing all read operations
+  type RootQuery {
+    hello: TestData! # Query that returns TestData
+  }
+
+  # Connects the root query to the schema
+  schema {
+    query: RootQuery
+  }
+`);
+
+Validator is used to validate 
+the validate objet is used to check the 
+
