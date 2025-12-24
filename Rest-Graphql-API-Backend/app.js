@@ -133,7 +133,7 @@ app.use((error, req, res, next) => {
 
 mongoose
   .connect(
-    "mongodb+srv://codebyaiman:aiman123@cluster0.j6gucel.mongodb.net/messages?retryWrites=true&w=majority"
+    "mongodb+srv://**********@cluster0.j6gucel.mongodb.net/messages?retryWrites=true&w=majority"
   )
   .then(() => {
     app.listen(8080);
